@@ -1,0 +1,13 @@
+{
+  "used_url": "http://apis.data.go.kr/B551011/TarRlteTarService1/areaBasedList1 [serviceKey]",
+  "params": {
+    "MobileOS": "ETC",
+    "MobileApp": "SmartTravelPlanner",
+    "_type": "json",
+    "baseYm": "202504",
+    "areaCd": "51",
+    "signguCd": "51130",
+    "numOfRows": 20,
+    "pageNo": 1
+  }
+}
