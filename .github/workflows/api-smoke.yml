@@ -20,6 +20,20 @@ jobs:
           python -m pip install -U pip
           pip install requests
 
+      - name: Workaround: lower OpenSSL security level (SECLEVEL=1)
+        run: |
+          cat > openssl.cnf <<'CONF'
+          openssl_conf = default_conf
+          [default_conf]
+          ssl_conf = ssl_sect
+          [ssl_sect]
+          system_default = system_default_sect
+          [system_default_sect]
+          CipherString = DEFAULT:@SECLEVEL=1
+          CONF
+          echo "OPENSSL_CONF=$PWD/openssl.cnf" >> $GITHUB_ENV
+
+
       - name: Probe endpoints (HTTPS first, then HTTP)
         env:
           SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
@@ -130,3 +144,4 @@ jobs:
         with:
           name: smoke-out
           path: out/*
+
