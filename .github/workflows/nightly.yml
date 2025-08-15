@@ -54,6 +54,7 @@ jobs:
         run: |
           PYTHONPATH=. python scripts/refine_pois.py
 
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
