@@ -1,0 +1,60 @@
+name: Nightly Data Pipeline
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # 매일 UTC 18시 → 한국 시간 새벽 3시
+  workflow_dispatch:      # 수동 실행 버튼
+
+jobs:
+  nightly-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Prepare seed file
+        run: |
+          mkdir -p data/seed
+          cat > data/seed/regions.csv <<'CSV'
+areaCd,signguCd,areaNm,signguNm
+51,51130,강원특별자치도,원주시
+51,51150,강원특별자치도,횡성군
+41,41135,경기도,성남시분당구
+28,28185,인천광역시,연수구
+CSV
+
+      - name: Run bulk fetch
+        env:
+          SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=. python scripts/fetch_bulk.py --rows 200 --max-pages 30
+
+      - name: Clean data
+        run: |
+          source .venv/bin/activate
+          python scripts/clean_pois.py
+
+      - name: Refine data
+        run: |
+          source .venv/bin/activate
+          python scripts/refine_pois.py
+
+      - name: Upload processed data artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: final_pois
+          path: data/processed/final_pois.parquet
