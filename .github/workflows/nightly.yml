@@ -1,60 +1,64 @@
-name: Nightly Data Pipeline
+name: Nightly bulk ingest
 
 on:
   schedule:
-    - cron: '0 18 * * *' # 매일 UTC 18시 → 한국 시간 새벽 3시
-  workflow_dispatch:      # 수동 실행 버튼
+    # 매일 03:30 KST (18:30 UTC)
+    - cron: '30 18 * * *'
+  workflow_dispatch:
 
 jobs:
-  nightly-pipeline:
+  nightly:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install deps
+        shell: bash
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Prepare seed file
+        shell: bash
         run: |
           mkdir -p data/seed
           cat > data/seed/regions.csv <<'CSV'
-areaCd,signguCd,areaNm,signguNm
-51,51130,강원특별자치도,원주시
-51,51150,강원특별자치도,횡성군
-41,41135,경기도,성남시분당구
-28,28185,인천광역시,연수구
-CSV
+          areaCd,sigunguCd,areaNm,signguNm
+          51,51130,강원특별자치도,원주시
+          51,51150,강원특별자치도,횡성군
+          41,41135,경기도,성남시분당구
+          28,28185,인천광역시,연수구
+          CSV
 
       - name: Run bulk fetch
+        shell: bash
         env:
           SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
         run: |
-          source .venv/bin/activate
           PYTHONPATH=. python scripts/fetch_bulk.py --rows 200 --max-pages 30
 
       - name: Clean data
+        shell: bash
         run: |
-          source .venv/bin/activate
-          python scripts/clean_pois.py
+          PYTHONPATH=. python scripts/clean_pois.py
 
       - name: Refine data
+        shell: bash
         run: |
-          source .venv/bin/activate
-          python scripts/refine_pois.py
+          PYTHONPATH=. python scripts/refine_pois.py
 
-      - name: Upload processed data artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: final_pois
-          path: data/processed/final_pois.parquet
+          name: nightly-output
+          path: |
+            data/raw/**
+            data/processed/**
+            notebooks/output/**
