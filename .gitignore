@@ -1,1 +1,15 @@
 .venv/
+# env & cache
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# data
+data/raw/
+data/seed/
+notebooks/output/
+data/processed/*.parquet
+data/processed/*.csv
+
+# OS / etc
+.DS_Store

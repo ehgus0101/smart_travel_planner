@@ -1,19 +1,39 @@
+<<<<<<< HEAD
 name: API Smoke (TarRlteTarService1)
 on: { workflow_dispatch: {} }
+=======
+name: API Smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+>>>>>>> 5380de3 (Restore api-smoke.yml workflow for API test)
 
 jobs:
   call-api:
     runs-on: ubuntu-latest
     steps:
+<<<<<<< HEAD
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
+=======
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+>>>>>>> 5380de3 (Restore api-smoke.yml workflow for API test)
 
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install requests
 
+<<<<<<< HEAD
       - name: Probe areaBasedList1 (https→http, key-case both)
         env:
           SERVICE_KEY: ${{ secrets.SERVICE_KEY }}   # 리포 Secrets에 등록 필요
@@ -102,3 +122,42 @@ jobs:
         with:
           name: api-smoke-output
           path: out/
+=======
+      - name: Probe endpoints (HTTPS first, then HTTP)
+        run: |
+          python - <<'PY'
+          import requests
+
+          URLS = [
+              "https://apis.data.go.kr/B551011/KorService1/areaBasedList1",
+              "http://apis.data.go.kr/B551011/KorService1/areaBasedList1"
+          ]
+          params = dict(
+              MobileOS="ETC",
+              MobileApp="SmartTravelPlanner",
+              _type="json",
+              areaCode="51",
+              sigunguCode="51130",
+              listYN="Y",
+              arrange="A",
+              numOfRows="1",
+              pageNo="1",
+              serviceKey="${{ secrets.SERVICE_KEY }}"
+          )
+
+          for url in URLS:
+              print(f"Trying {url}")
+              try:
+                  r = requests.get(url, params=params, timeout=10)
+                  print("Status:", r.status_code)
+                  r.raise_for_status()
+                  data = r.json()
+                  if "response" in data:
+                      print("OK")
+                      break
+                  else:
+                      print("Unexpected response:", data)
+              except Exception as e:
+                  print("Error:", e)
+          PY
+>>>>>>> 5380de3 (Restore api-smoke.yml workflow for API test)
