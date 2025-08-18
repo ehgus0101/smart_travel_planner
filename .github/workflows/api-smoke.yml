@@ -1,47 +1,27 @@
-<<<<<<< HEAD
 name: API Smoke (TarRlteTarService1)
 on: { workflow_dispatch: {} }
-=======
-name: API Smoke
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *"
->>>>>>> 5380de3 (Restore api-smoke.yml workflow for API test)
 
 jobs:
   call-api:
     runs-on: ubuntu-latest
     steps:
-<<<<<<< HEAD
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-=======
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
->>>>>>> 5380de3 (Restore api-smoke.yml workflow for API test)
 
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install requests
 
-<<<<<<< HEAD
       - name: Probe areaBasedList1 (https→http, key-case both)
         env:
-          SERVICE_KEY: ${{ secrets.SERVICE_KEY }}   # 리포 Secrets에 등록 필요
+          SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
           MOBILE_OS: ETC
           MOBILE_APP: CI-Smoke
-          BASE_YM: "202504"     # 문서 예시값. 필요시 바꿔 쓰세요
-          AREA_CD: "51"         # 강원특별자치도
-          SIGNGU_CD: "51130"    # 원주시
+          BASE_YM: "202504"
+          AREA_CD: "51"
+          SIGNGU_CD: "51130"
         run: |
           python - <<'PY'
           import os, json, requests, pathlib
@@ -50,13 +30,11 @@ jobs:
           if not svc:
               raise SystemExit("SERVICE_KEY secret not set")
 
-          # 공식 문서 기준: TarRlteTarService1 / areaBasedList1
           HOSTS = [
-            "https://apis.data.go.kr",   # HTTPS 우선
-            "http://apis.data.go.kr",    # TLS 실패 시 HTTP 폴백
+            "https://apis.data.go.kr",
+            "http://apis.data.go.kr",
           ]
           PATH = "/B551011/TarRlteTarService1/areaBasedList1"
-
           base_params = {
             "MobileOS": os.environ.get("MOBILE_OS", "ETC"),
             "MobileApp": os.environ.get("MOBILE_APP", "CI-Smoke"),
@@ -71,7 +49,7 @@ jobs:
 
           def call(url: str, key_name: str):
             params = dict(base_params)
-            if "%" in svc:
+            if "%" in svc:  # URL-encoded key
               full = f"{url}?{key_name}={svc}"
               return requests.get(full, params=params, timeout=25, headers=headers, allow_redirects=True)
             else:
@@ -83,22 +61,19 @@ jobs:
 
           for host in HOSTS:
             url = host + PATH
-            for key_name in ("serviceKey","ServiceKey"):  # 대/소문자 모두 시도(구형 호환)
+            for key_name in ("serviceKey","ServiceKey"):
               try:
                 r = call(url, key_name)
                 logs.append(f"try {url} [{key_name}] -> {r.status_code} {r.headers.get('content-type')}")
                 ctype = (r.headers.get("content-type") or "").lower()
                 if "json" not in ctype:
-                  open("out/last_non_json.txt","w",encoding="utf-8").write(r.text)
-                  continue
+                  open("out/last_non_json.txt","w",encoding="utf-8").write(r.text); continue
                 data = r.json()
                 code = (((data.get("response") or {}).get("header")) or {}).get("resultCode")
                 if code == "0000":
                   winner = (url, key_name, data); break
                 else:
-                  open("out/last_json.json","w",encoding="utf-8").write(
-                    json.dumps(data, ensure_ascii=False, indent=2)
-                  )
+                  open("out/last_json.json","w",encoding="utf-8").write(json.dumps(data, ensure_ascii=False, indent=2))
               except Exception as e:
                 logs.append(f"error {url} [{key_name}]: {e!r}")
                 continue
@@ -122,42 +97,3 @@ jobs:
         with:
           name: api-smoke-output
           path: out/
-=======
-      - name: Probe endpoints (HTTPS first, then HTTP)
-        run: |
-          python - <<'PY'
-          import requests
-
-          URLS = [
-              "https://apis.data.go.kr/B551011/KorService1/areaBasedList1",
-              "http://apis.data.go.kr/B551011/KorService1/areaBasedList1"
-          ]
-          params = dict(
-              MobileOS="ETC",
-              MobileApp="SmartTravelPlanner",
-              _type="json",
-              areaCode="51",
-              sigunguCode="51130",
-              listYN="Y",
-              arrange="A",
-              numOfRows="1",
-              pageNo="1",
-              serviceKey="${{ secrets.SERVICE_KEY }}"
-          )
-
-          for url in URLS:
-              print(f"Trying {url}")
-              try:
-                  r = requests.get(url, params=params, timeout=10)
-                  print("Status:", r.status_code)
-                  r.raise_for_status()
-                  data = r.json()
-                  if "response" in data:
-                      print("OK")
-                      break
-                  else:
-                      print("Unexpected response:", data)
-              except Exception as e:
-                  print("Error:", e)
-          PY
->>>>>>> 5380de3 (Restore api-smoke.yml workflow for API test)
